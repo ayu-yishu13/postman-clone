@@ -16,6 +16,8 @@ export interface Tab {
   response: ProxyResponseData | null;
   loading: boolean;
   isDirty: boolean;
+  tabType?: "request" | "collection";
+  collectionTabActiveTab?: "overview" | "runs";
 }
 
 export interface Toast {
@@ -25,13 +27,15 @@ export interface Toast {
 }
 
 export interface WorkspaceItem {
+  id: number;
   name: string;
   type: "Public" | "Internal";
   creator: string;
   contributors: number;
-  lastActivity: string;
+  last_activity: string;
   access: string;
   role: string;
+  created_at?: string;
 }
 
 export interface ChatMessage {

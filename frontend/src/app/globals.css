@@ -1,18 +1,18 @@
 /* Postman Clone Refined Design System */
 :root {
-  --bg-primary: #121212;     /* Dark gray/black for main dashboard */
-  --bg-secondary: #1c1c1c;   /* Slightly lighter dark gray for sidebars */
-  --bg-tertiary: #1a1a1a;    /* Dark gray for top navigation header */
-  --bg-card: #1e1e1e;        /* Gray for cards */
-  --border-color: #2b2b2b;   /* Subtle border color */
-  --border-focus: #3e3e3e;
-  --text-primary: #f5f5f5;
-  --text-secondary: #a6a6a6;
-  --text-muted: #6b6b6b;
-  --accent-color: #ff6c37;   /* Postman Orange */
-  --accent-hover: #e05c2b;
+  --bg-primary: #1c1c1c;     /* Dark gray for main canvas/request editors */
+  --bg-secondary: #212121;   /* Dark gray for sidebar, footer, top nav */
+  --bg-tertiary: #262626;    /* Dark gray for code snippet backgrounds, inactive tab bars */
+  --bg-card: #2e2e2e;        /* Dark gray for dropdowns, tooltips, cards */
+  --border-color: #303030;   /* Solid thin border color */
+  --border-focus: #444444;   /* Focused border color */
+  --text-primary: #e6e6e6;   /* Main readable text color */
+  --text-secondary: #a6a6a6; /* Supporting text label color */
+  --text-muted: #8c8c8c;     /* Muted metadata text color */
+  --accent-color: #ff6c37;   /* Postman Orange brand accent */
+  --accent-hover: #ff7f50;
   
-  /* Method Colors */
+  /* Method Colors matching Postman UI */
   --method-get: #0cbb52;
   --method-post: #ffb400;
   --method-put: #097bed;
@@ -20,7 +20,7 @@
   --method-patch: #21d2b4;
   --method-other: #a6a6a6;
 
-  --font-mono: 'Consolas', 'Courier New', monospace;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
 * {
@@ -70,17 +70,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 48px;
-  background-color: var(--bg-tertiary);
+  height: 44px;
+  background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  padding: 0 16px;
+  padding: 0 12px;
   z-index: 100;
 }
 
 .top-nav-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .top-nav-center {
@@ -92,7 +92,7 @@ body {
 .top-nav-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .nav-home-icon-btn {
@@ -100,7 +100,7 @@ body {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 6px;
+  padding: 5px;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -116,13 +116,13 @@ body {
   background: none;
   border: none;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 5px 8px;
   border-radius: 4px;
 }
 
@@ -130,7 +130,7 @@ body {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Search bar on top header matching Screenshot 1 */
+/* Search bar on top header matching Postman design */
 .search-bar-container {
   position: relative;
   display: flex;
@@ -138,20 +138,25 @@ body {
 }
 
 .header-search-bar {
-  width: 280px;
-  padding: 5px 12px 5px 30px;
-  background-color: #242424;
-  border: 1px solid transparent;
-  border-radius: 20px;
+  width: 240px;
+  height: 26px;
+  padding: 4px 10px 4px 28px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
   color: var(--text-primary);
   outline: none;
-  font-size: 12px;
-  transition: all 0.2s;
+  font-size: 11px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-search-bar::placeholder {
+  color: var(--text-muted);
 }
 
 .header-search-bar:focus {
-  background-color: var(--bg-card);
-  border-color: var(--border-focus);
+  background-color: var(--bg-primary);
+  border-color: var(--accent-color);
   width: 320px;
 }
 
@@ -160,22 +165,25 @@ body {
   left: 10px;
   color: var(--text-muted);
   pointer-events: none;
+  display: flex;
+  align-items: center;
 }
 
 /* Header Right Buttons */
 .upgrade-btn-orange {
-  background-color: #a13d1b; /* Solid dark orange/reddish */
-  color: white;
-  border: none;
+  background-color: transparent;
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
   border-radius: 4px;
-  padding: 5px 12px;
-  font-weight: 600;
-  font-size: 12px;
+  padding: 4px 10px;
+  font-weight: 500;
+  font-size: 11px;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .upgrade-btn-orange:hover {
-  background-color: #bd4820;
+  background-color: rgba(255, 108, 55, 0.08);
 }
 
 /* Main Content Routing */
@@ -259,17 +267,18 @@ body {
 
 .search-bar {
   width: 100%;
-  padding: 6px 10px;
+  padding: 5px 8px 5px 24px;
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 4px;
   color: var(--text-primary);
   outline: none;
-  font-size: 12px;
+  font-size: 11px;
+  height: 28px;
 }
 
 .search-bar:focus {
-  border-color: var(--border-focus);
+  border-color: var(--accent-color);
 }
 
 /* List Items */
@@ -332,11 +341,9 @@ body {
 }
 
 .nested-list {
-  padding-left: 12px;
-  border-left: 1px solid var(--border-color);
-  margin-left: 14px;
-  margin-top: 2px;
-  margin-bottom: 6px;
+  padding-left: 14px;
+  margin-top: 1px;
+  margin-bottom: 2px;
 }
 
 /* Resizers */
@@ -477,18 +484,38 @@ body {
   padding: 12px 16px;
   gap: 8px;
   background-color: var(--bg-primary);
+  align-items: center;
+}
+
+.url-bar-wrapper {
+  display: flex;
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-secondary);
+  align-items: center;
+  height: 32px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.url-bar-wrapper:focus-within {
+  border-color: #555555;
 }
 
 .method-select {
-  padding: 8px 12px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  height: 100%;
+  padding: 0 12px;
+  background-color: transparent;
+  border: none;
+  border-right: 1px solid var(--border-color);
   color: var(--text-primary);
   font-weight: 600;
   outline: none;
   cursor: pointer;
   font-size: 12px;
+  display: flex;
+  align-items: center;
 }
 
 .method-select option {
@@ -498,32 +525,33 @@ body {
 
 .url-input {
   flex: 1;
-  padding: 8px 12px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  height: 100%;
+  padding: 0 12px;
+  background-color: transparent;
+  border: none;
   color: var(--text-primary);
   font-size: 12px;
   outline: none;
 }
 
-.url-input:focus, .method-select:focus {
-  border-color: var(--border-focus);
-}
-
 .send-btn {
-  padding: 8px 24px;
-  background-color: #097bed; /* Send Blue */
+  height: 32px;
+  padding: 0 20px;
+  background-color: var(--accent-color);
   border: none;
   border-radius: 4px;
   color: white;
   font-weight: 600;
   cursor: pointer;
   font-size: 12px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .send-btn:hover {
-  background-color: #086ec4;
+  background-color: var(--accent-hover);
 }
 
 .btn-secondary {
@@ -579,30 +607,45 @@ body {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 12px;
+  border: 1px solid var(--border-color);
 }
 
 .kv-table th {
   text-align: left;
-  padding: 6px 8px;
+  padding: 6px 10px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
   font-weight: 500;
   font-size: 11px;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.kv-table th:last-child {
+  border-right: none;
 }
 
 .kv-table td {
-  padding: 4px 8px;
+  padding: 0;
   border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  height: 28px;
+}
+
+.kv-table td:last-child {
+  border-right: none;
 }
 
 .kv-input {
   width: 100%;
+  height: 100%;
   background: none;
   border: none;
   color: var(--text-primary);
   outline: none;
-  padding: 4px;
-  font-size: 12px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
 }
 
 .kv-input::placeholder {
@@ -712,9 +755,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
+  padding: 4px 16px;
+  height: 36px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
 }
 
 .response-status-group {
@@ -1222,13 +1266,12 @@ body {
   cursor: pointer;
 }
 
-/* Search Dropdown Overlay */
 .search-dropdown-overlay {
   position: absolute;
-  top: 42px;
+  top: 38px;
   left: 0;
   width: 680px;
-  background-color: #1e1e1e;
+  background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   z-index: 1000;
@@ -1809,4 +1852,129 @@ body {
 
 .star-outline-icon:hover {
   color: #ffb300 !important;
+}
+
+/* Sidebar Plus Dropdown */
+.sidebar-plus-dropdown {
+  position: absolute;
+  top: 32px;
+  left: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  width: 200px;
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.plus-search-container {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.plus-search-input {
+  width: 100%;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 4px 8px;
+  font-size: 11px;
+  outline: none;
+}
+
+.plus-dropdown-items {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.plus-dropdown-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 6px 0;
+}
+
+.plus-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.plus-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.plus-dropdown-item-icon {
+  font-size: 12px;
+  opacity: 0.8;
+  display: inline-block;
+  width: 14px;
+}
+
+.plus-dropdown-item-shortcut {
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* Spec Submenu */
+.plus-spec-submenu {
+  position: absolute;
+  top: 140px; /* Offset relative to the Spec item position */
+  left: 198px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 1010;
+  width: 160px;
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bottom Status Footer */
+.bottom-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 30px;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  user-select: none;
+  z-index: 100;
+}
+
+.footer-section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.footer-item {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  height: 100%;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.footer-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
 }

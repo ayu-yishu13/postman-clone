@@ -12,7 +12,7 @@ export function useAppState() {
 
   // --- View States ---
   const [currentView, setCurrentView] = useState<"home" | "workspaces" | "workspace">("home");
-  const [activeWorkspace, setActiveWorkspace] = useState("Ayush Kumar Rai's Workspace");
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceItem | null>(null);
   
   // --- Data States ---
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -41,7 +41,7 @@ export function useAppState() {
   const [specsExpanded, setSpecsExpanded] = useState(true);
   const [flowsExpanded, setFlowsExpanded] = useState(true);
   const [workspacesSubTab, setWorkspacesSubTab] = useState<"all" | "project" | "external">("all");
-  const [selectedWorkspaceNames, setSelectedWorkspaceNames] = useState<string[]>([]);
+  const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<number[]>([]);
   const [showWorkspaceFilterDropdown, setShowWorkspaceFilterDropdown] = useState(false);
   const [workspaceFilters, setWorkspaceFilters] = useState({
     type: { internal: false, public: false, partner: false },
@@ -110,35 +110,7 @@ export function useAppState() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([
-    {
-      name: "AYUSH",
-      type: "Public",
-      creator: "You",
-      contributors: 1,
-      lastActivity: "22 days ago",
-      access: "Anyone on the internet",
-      role: "Admin"
-    },
-    {
-      name: "Ayush Kumar Rai's Workspace",
-      type: "Internal",
-      creator: "You",
-      contributors: 1,
-      lastActivity: "23 days ago",
-      access: "Everyone in your team",
-      role: "Admin"
-    },
-    {
-      name: "My Workspace",
-      type: "Internal",
-      creator: "You",
-      contributors: 1,
-      lastActivity: "-",
-      access: "Only you and invited...",
-      role: "Admin"
-    }
-  ]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([]);
 
   return {
     // Auth
@@ -173,7 +145,7 @@ export function useAppState() {
     specsExpanded, setSpecsExpanded,
     flowsExpanded, setFlowsExpanded,
     workspacesSubTab, setWorkspacesSubTab,
-    selectedWorkspaceNames, setSelectedWorkspaceNames,
+    selectedWorkspaceIds, setSelectedWorkspaceIds,
     showWorkspaceFilterDropdown, setShowWorkspaceFilterDropdown,
     workspaceFilters, setWorkspaceFilters,
     // Resizing

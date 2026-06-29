@@ -16,9 +16,12 @@ import {
   getHistory,
   clearHistory as clearHistoryAPI,
   sendProxyRequest,
+  getWorkspaces,
+  createWorkspace,
+  deleteWorkspace,
   SavedRequest,
 } from "../utils/requests";
-import { Tab } from "../app/types";
+import { Tab, WorkspaceItem } from "../app/types";
 import { AppState } from "./useAppState";
 
 export function useAppHandlers(state: AppState) {
@@ -53,6 +56,8 @@ export function useAppHandlers(state: AppState) {
     searchFilters, setSearchFilters,
     activeFilterDropdown, setActiveFilterDropdown,
     searchQuery,
+    workspaces, setWorkspaces,
+    selectedWorkspaceIds, setSelectedWorkspaceIds,
   } = state;
 
   // ============================
@@ -71,16 +76,41 @@ export function useAppHandlers(state: AppState) {
   // ============================
   const loadAllData = useCallback(async () => {
     try {
-      const colls = await getCollections();
+      const wsList = await getWorkspaces();
+      setWorkspaces(wsList);
+      
+      if (wsList.length === 0) {
+        setCollections([]);
+        setEnvironments([]);
+        setHistory([]);
+        setActiveWorkspace(null);
+        return;
+      }
+
+      let selectedWs = activeWorkspace;
+      const savedIdStr = localStorage.getItem("activeWorkspaceId");
+      if (savedIdStr) {
+        const savedId = parseInt(savedIdStr, 10);
+        selectedWs = wsList.find(w => w.id === savedId) || null;
+      }
+      
+      if (!selectedWs) {
+        selectedWs = wsList[0];
+      }
+      
+      setActiveWorkspace(selectedWs);
+      localStorage.setItem("activeWorkspaceId", selectedWs.id.toString());
+
+      const colls = await getCollections(selectedWs.id);
       setCollections(colls);
-      const envs = await getEnvironments();
+      const envs = await getEnvironments(selectedWs.id);
       setEnvironments(envs);
-      const hist = await getHistory();
+      const hist = await getHistory(selectedWs.id);
       setHistory(hist);
     } catch (err: any) {
       addToast("Error fetching server data: " + err.message, "error");
     }
-  }, [setCollections, setEnvironments, setHistory, addToast]);
+  }, [activeWorkspace, setActiveWorkspace, setWorkspaces, setCollections, setEnvironments, setHistory, addToast]);
 
   // ============================
   // EFFECTS
@@ -183,7 +213,7 @@ export function useAppHandlers(state: AppState) {
       await updateCollection(id, renameInputVal.trim());
       addToast("Collection renamed", "success");
       setEditingCollectionId(null);
-      const updated = await getCollections();
+      const updated = await getCollections(activeWorkspace!.id);
       setCollections(updated);
     } catch (err: any) {
       addToast("Failed to rename: " + err.message, "error");
@@ -214,7 +244,7 @@ export function useAppHandlers(state: AppState) {
         prev.map((t) => (t.savedId === req.id ? { ...t, name: renameInputVal.trim() } : t))
       );
 
-      const updated = await getCollections();
+      const updated = await getCollections(activeWorkspace!.id);
       setCollections(updated);
     } catch (err: any) {
       addToast("Failed to rename: " + err.message, "error");
@@ -431,7 +461,16 @@ export function useAppHandlers(state: AppState) {
         }
       }
 
+      if (!activeWorkspace) {
+        addToast("No active workspace selected", "error");
+        setTabs((prev) =>
+          prev.map((t) => (t.id === activeTabId ? { ...t, loading: true } : t))
+        );
+        return;
+      }
+
       const res = await sendProxyRequest({
+        workspace_id: activeWorkspace.id,
         method: activeTab.method,
         url: activeTab.url,
         headers: cleanHeaders,
@@ -456,7 +495,7 @@ export function useAppHandlers(state: AppState) {
         addToast(`Response: ${res.status_code} ${res.status_text || ""}`, "success");
       }
 
-      const hist = await getHistory();
+      const hist = await getHistory(activeWorkspace.id);
       setHistory(hist);
     } catch (err: any) {
       setTabs((prev) =>
@@ -505,7 +544,8 @@ export function useAppHandlers(state: AppState) {
         );
         setModals((prev) => ({ ...prev, saveRequest: false }));
       }
-      const updatedColls = await getCollections();
+      const updatedColls = await getCollections(activeWorkspace!.id);
+      setCollections(updatedColls);
       setCollections(updatedColls);
     } catch (err: any) {
       addToast("Failed to save request: " + err.message, "error");
@@ -534,12 +574,16 @@ export function useAppHandlers(state: AppState) {
       addToast("Collection name is required", "error");
       return;
     }
+    if (!activeWorkspace) {
+      addToast("No active workspace selected", "error");
+      return;
+    }
     try {
-      await createCollection(modalInputs.collectionName);
+      await createCollection(activeWorkspace.id, modalInputs.collectionName);
       addToast("Collection created", "success");
       setModalInputs((prev) => ({ ...prev, collectionName: "" }));
       setModals((prev) => ({ ...prev, createCollection: false }));
-      const updated = await getCollections();
+      const updated = await getCollections(activeWorkspace.id);
       setCollections(updated);
     } catch (err: any) {
       addToast(err.message, "error");
@@ -552,7 +596,7 @@ export function useAppHandlers(state: AppState) {
     try {
       await deleteCollection(id);
       addToast("Collection deleted", "success");
-      const updated = await getCollections();
+      const updated = await getCollections(activeWorkspace!.id);
       setCollections(updated);
     } catch (err: any) {
       addToast(err.message, "error");
@@ -649,16 +693,20 @@ export function useAppHandlers(state: AppState) {
       return;
     }
     const filteredVars = modalInputs.envVariables.filter((v) => v.key.trim() !== "");
+    if (!activeWorkspace) {
+      addToast("No active workspace selected", "error");
+      return;
+    }
     try {
       if (modalInputs.editingEnvId) {
-        await updateEnvironment(modalInputs.editingEnvId, modalInputs.envName, filteredVars);
+        await updateEnvironment(modalInputs.editingEnvId, activeWorkspace.id, modalInputs.envName, filteredVars);
         addToast("Environment updated", "success");
       } else {
-        await createEnvironment(modalInputs.envName, filteredVars);
+        await createEnvironment(activeWorkspace.id, modalInputs.envName, filteredVars);
         addToast("Environment created", "success");
       }
       setModals((prev) => ({ ...prev, editEnvironment: false }));
-      const updated = await getEnvironments();
+      const updated = await getEnvironments(activeWorkspace.id);
       setEnvironments(updated);
     } catch (err: any) {
       addToast(err.message, "error");
@@ -672,7 +720,7 @@ export function useAppHandlers(state: AppState) {
       await deleteEnvironment(id);
       addToast("Environment deleted", "success");
       if (selectedEnvId === id) setSelectedEnvId(null);
-      const updated = await getEnvironments();
+      const updated = await getEnvironments(activeWorkspace!.id);
       setEnvironments(updated);
     } catch (err: any) {
       addToast(err.message, "error");
@@ -682,11 +730,97 @@ export function useAppHandlers(state: AppState) {
   // ============================
   // WORKSPACE HELPERS
   // ============================
-  const handleSelectWorkspace = (wName: string) => {
-    setActiveWorkspace(wName);
-    setCurrentView("workspace");
-    setShowWorkspaceDropdown(false);
-    addToast(`Switched to workspace: ${wName}`, "info");
+  const handleSelectWorkspace = async (workspaceId: number) => {
+    try {
+      const wsList = await getWorkspaces();
+      const targetWs = wsList.find(w => w.id === workspaceId);
+      if (!targetWs) {
+        addToast("Workspace not found", "error");
+        return;
+      }
+      setActiveWorkspace(targetWs);
+      localStorage.setItem("activeWorkspaceId", workspaceId.toString());
+      setCurrentView("workspace");
+      setShowWorkspaceDropdown(false);
+      addToast(`Switched to workspace: ${targetWs.name}`, "info");
+
+      const colls = await getCollections(workspaceId);
+      setCollections(colls);
+      const envs = await getEnvironments(workspaceId);
+      setEnvironments(envs);
+      const hist = await getHistory(workspaceId);
+      setHistory(hist);
+    } catch (err: any) {
+      addToast("Failed to switch workspace: " + err.message, "error");
+    }
+  };
+
+  const handleCreateWorkspace = async () => {
+    const name = prompt("Enter workspace name:");
+    if (!name || !name.trim()) return;
+    
+    const type = prompt("Enter workspace type (Internal/Public):", "Internal");
+    if (type !== "Internal" && type !== "Public") {
+      addToast("Workspace type must be either 'Internal' or 'Public'", "error");
+      return;
+    }
+
+    try {
+      const newWs = await createWorkspace({
+        name: name.trim(),
+        type: type,
+        creator: "You",
+        contributors: 1,
+        last_activity: "Just now",
+        access: type === "Public" ? "Anyone on the internet" : "Everyone in your team",
+        role: "Admin"
+      });
+      addToast("Workspace created successfully", "success");
+      
+      setActiveWorkspace(newWs);
+      localStorage.setItem("activeWorkspaceId", newWs.id.toString());
+      
+      await loadAllData();
+    } catch (err: any) {
+      addToast("Failed to create workspace: " + err.message, "error");
+    }
+  };
+
+  const handleDeleteWorkspaces = async (ids: number[]) => {
+    if (!confirm(`Are you sure you want to delete the selected ${ids.length} workspace(s)?`)) return;
+    try {
+      for (const id of ids) {
+        await deleteWorkspace(id);
+      }
+      addToast("Workspace(s) deleted successfully", "success");
+      
+      let remainingWs = workspaces.filter(w => !ids.includes(w.id));
+      if (activeWorkspace && ids.includes(activeWorkspace.id)) {
+        if (remainingWs.length > 0) {
+          setActiveWorkspace(remainingWs[0]);
+          localStorage.setItem("activeWorkspaceId", remainingWs[0].id.toString());
+        } else {
+          setActiveWorkspace(null);
+          localStorage.removeItem("activeWorkspaceId");
+        }
+      }
+      
+      await loadAllData();
+    } catch (err: any) {
+      addToast("Failed to delete workspace(s): " + err.message, "error");
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!activeWorkspace) return;
+    try {
+      await clearHistoryAPI(activeWorkspace.id);
+      addToast("History cleared", "info");
+      const hist = await getHistory(activeWorkspace.id);
+      setHistory(hist);
+    } catch (err: any) {
+      addToast("Failed to clear history: " + err.message, "error");
+    }
   };
 
   // ============================
@@ -871,6 +1005,9 @@ export function useAppHandlers(state: AppState) {
     handleDeleteEnvironment,
     // Workspaces
     handleSelectWorkspace,
+    handleCreateWorkspace,
+    handleDeleteWorkspaces,
+    handleClearHistory,
     // AI Chat
     handleHomeChatSubmit,
     handleWorkspaceChatSubmit,

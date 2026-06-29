@@ -48,6 +48,7 @@ interface WorkspaceBuilderViewProps {
   createNewTab: (initial?: Partial<Tab>) => void;
   closeTab: (tabIdToClose: string, e: React.MouseEvent) => void;
   activeWorkspace: string;
+  activeWorkspaceId: number;
   selectedEnvId: number | null;
   setSelectedEnvId: (id: number | null) => void;
   environments: Environment[];
@@ -125,6 +126,7 @@ export const WorkspaceBuilderView: React.FC<WorkspaceBuilderViewProps> = ({
   createNewTab,
   closeTab,
   activeWorkspace,
+  activeWorkspaceId,
   selectedEnvId,
   setSelectedEnvId,
   environments,
@@ -203,45 +205,121 @@ export const WorkspaceBuilderView: React.FC<WorkspaceBuilderViewProps> = ({
     return skillsList.filter(s => s.name.toLowerCase().includes(searchFilter.toLowerCase()));
   };
 
+  const [showSidebarPlusDropdown, setShowSidebarPlusDropdown] = React.useState(false);
+  const [showSpecSubmenu, setShowSpecSubmenu] = React.useState(false);
+  const [plusSearchQuery, setPlusSearchQuery] = React.useState("");
+
+  const plusItems = [
+    { name: "Ask AI", icon: "✨", shortcut: "Ctrl+Alt+P", action: () => { setShowAIChat(true); setShowSidebarPlusDropdown(false); } },
+    { type: "divider" },
+    { name: "HTTP", icon: "🌐", action: () => { createNewTab(); setShowSidebarPlusDropdown(false); } },
+    { name: "GraphQL", icon: "⚛️", action: () => { createNewTab({ method: "POST", url: "/graphql" }); setShowSidebarPlusDropdown(false); } },
+    { name: "AI", icon: "🤖", action: () => { setShowAIChat(true); setShowSidebarPlusDropdown(false); } },
+    { name: "MCP", icon: "🔌", action: () => { addToast("MCP Protocol integration is a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+    { name: "gRPC", icon: "📦", action: () => { addToast("gRPC Request creator is a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+    { name: "WebSocket", icon: "⚡", action: () => { addToast("WebSocket connections are a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+    { name: "Socket.IO", icon: "🔌", action: () => { addToast("Socket.IO client is a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+    { name: "MQTT", icon: "📡", action: () => { addToast("MQTT client is a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+    { type: "divider" },
+    { 
+      name: "Collection", 
+      icon: "📁", 
+      action: async () => {
+        try {
+          const { createCollection: createAPI } = await import("../utils/requests");
+          const created = await createAPI(activeWorkspaceId, "New Collection");
+          addToast("Collection created", "success");
+          loadAllData();
+          createNewTab({
+            savedId: null,
+            collectionId: created.id,
+            name: "New Collection",
+            method: "COLL",
+            tabType: "collection",
+            collectionTabActiveTab: "overview"
+          });
+        } catch (err: any) {
+          addToast("Failed to create collection: " + err.message, "error");
+        }
+        setShowSidebarPlusDropdown(false);
+      }
+    },
+    { name: "Environment", icon: "⚙️", action: () => { handleOpenEditEnv(null); setShowSidebarPlusDropdown(false); } },
+    { 
+      name: "Spec", 
+      icon: "📄", 
+      hasSubmenu: true,
+      action: () => {
+        setShowSpecSubmenu(!showSpecSubmenu);
+      }
+    },
+    { name: "Mock", icon: "🎭", action: () => { addToast("Mock servers panel is a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+    { name: "Monitor", icon: "📊", action: () => { addToast("API Monitors panel is a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+    { name: "Webhook", icon: "⚓", action: () => { addToast("Webhooks listener is a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+    { name: "Flow", icon: "🔀", action: () => { addToast("API Flows workspace is a placeholder", "info"); setShowSidebarPlusDropdown(false); } },
+  ];
+
+  const specSubmenuItems = [
+    { name: "OpenAPI 3.1" },
+    { name: "OpenAPI 3.0" },
+    { name: "OpenAPI 2.0" },
+    { type: "divider" },
+    { name: "AsyncAPI 3.0" },
+    { name: "AsyncAPI 2.0" },
+    { type: "divider" },
+    { name: "GraphQL" },
+    { type: "divider" },
+    { name: "Protobuf 3" },
+    { name: "Protobuf 2" },
+    { type: "divider" },
+    { name: "Smithy" },
+  ];
+
+  const handleSpecItemClick = (name: string) => {
+    addToast(`Creating spec: ${name}`, "info");
+    setShowSidebarPlusDropdown(false);
+    setShowSpecSubmenu(false);
+  };
+
   return (
     <div className="workspace-chat-container">
+      {/* Left Narrow Icon Sidebar matching Postman */}
+      <div className="vertical-icon-sidebar">
+        <button 
+          className={`sidebar-icon-btn ${sidebarMainTab === "elements" ? "active" : ""}`}
+          onClick={() => setSidebarMainTab("elements")}
+          title="Collections"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </button>
+        <button 
+          className={`sidebar-icon-btn ${sidebarMainTab === "environments" ? "active" : ""}`}
+          onClick={() => setSidebarMainTab("environments")}
+          title="Environments"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+          </svg>
+        </button>
+        <button 
+          className={`sidebar-icon-btn ${sidebarMainTab === "history" ? "active" : ""}`}
+          onClick={() => setSidebarMainTab("history")}
+          title="History"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </button>
+      </div>
+
       {/* Secondary Sidebar Content Panel */}
       <aside className="sidebar" style={{ width: sidebarWidth }}>
-        
-        {/* Horizontal Tabs at top of Sidebar */}
-        <div className="sidebar-horizontal-tabs">
-          <button 
-            className={`sidebar-tab-btn-icon ${sidebarMainTab === "elements" ? "active" : ""}`}
-            onClick={() => setSidebarMainTab("elements")}
-            title="Workspace Elements"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-              <polyline points="2 17 12 22 22 17"></polyline>
-              <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
-          </button>
-          <button 
-            className={`sidebar-tab-btn-icon ${sidebarMainTab === "environments" ? "active" : ""}`}
-            onClick={() => setSidebarMainTab("environments")}
-            title="Environments"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="9" y1="3" x2="9" y2="21"></line>
-            </svg>
-          </button>
-          <button 
-            className={`sidebar-tab-btn-icon ${sidebarMainTab === "history" ? "active" : ""}`}
-            onClick={() => setSidebarMainTab("history")}
-            title="History"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </button>
-        </div>
 
         {/* Sidebar Header with filtering */}
         <div className="sidebar-header" style={{ paddingBottom: "4px" }}>
@@ -260,264 +338,247 @@ export const WorkspaceBuilderView: React.FC<WorkspaceBuilderViewProps> = ({
               </span>
             </div>
             {sidebarMainTab === "elements" && (
-              <>
+              <div style={{ position: "relative" }}>
                 <button
                   className="action-btn-icon"
                   style={{ fontSize: "14px", fontWeight: "bold" }}
-                  onClick={() => setModals((prev) => ({ ...prev, createCollection: true }))}
-                  title="Create Collection"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSidebarPlusDropdown(!showSidebarPlusDropdown);
+                    setShowSpecSubmenu(false);
+                    setPlusSearchQuery("");
+                  }}
+                  title="Create New..."
                 >
                   +
                 </button>
                 <button
                   className="action-btn-icon"
-                  style={{ fontSize: "14px", fontWeight: "bold" }}
+                  style={{ fontSize: "14px", fontWeight: "bold", marginLeft: "4px" }}
                   title="Options"
                 >
                   ...
                 </button>
-              </>
+
+                {showSidebarPlusDropdown && (
+                  <>
+                    <div 
+                      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
+                      onClick={() => { setShowSidebarPlusDropdown(false); setShowSpecSubmenu(false); }}
+                    />
+                    <div className="sidebar-plus-dropdown" onClick={(e) => e.stopPropagation()}>
+                      <div className="plus-search-container">
+                        <input 
+                          type="text" 
+                          placeholder="Search..." 
+                          className="plus-search-input"
+                          value={plusSearchQuery}
+                          onChange={(e) => setPlusSearchQuery(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      
+                      <div className="plus-dropdown-items">
+                        {plusItems
+                          .filter(item => {
+                            if (item.type === "divider") return true;
+                            return item.name?.toLowerCase().includes(plusSearchQuery.toLowerCase());
+                          })
+                          .map((item, idx) => {
+                            if (item.type === "divider") {
+                              return <div key={idx} className="plus-dropdown-divider" />;
+                            }
+                            return (
+                              <div 
+                                key={idx} 
+                                className="plus-dropdown-item" 
+                                onClick={item.action}
+                                style={{ display: "flex", justifyContent: "space-between" }}
+                              >
+                                <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <span className="plus-dropdown-item-icon">{item.icon}</span>
+                                  <span>{item.name}</span>
+                                </span>
+                                {item.shortcut && (
+                                  <span className="plus-dropdown-item-shortcut">{item.shortcut}</span>
+                                )}
+                                {item.hasSubmenu && (
+                                  <span style={{ fontSize: "9px", opacity: 0.5 }}>▶</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {showSpecSubmenu && (
+                      <div className="plus-spec-submenu" onClick={(e) => e.stopPropagation()}>
+                        {specSubmenuItems.map((item, idx) => {
+                          if (item.type === "divider") {
+                            return <div key={idx} className="plus-dropdown-divider" />;
+                          }
+                          return (
+                            <div 
+                              key={idx} 
+                              className="plus-dropdown-item" 
+                              onClick={() => handleSpecItemClick(item.name!)}
+                            >
+                              <span>{item.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
 
         <div className="sidebar-content" style={{ padding: 0 }}>
-          {/* 1. ELEMENTS TAB (ACCOORDIN PANELS) */}
+          {/* 1. ELEMENTS TAB (COLLECTIONS LIST VIEW) */}
           {sidebarMainTab === "elements" && (
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", flexDirection: "column", padding: "8px 12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", padding: "0 4px" }}>
+                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Collections</span>
+              </div>
               
-              {/* Accordion: Collections */}
-              <div className="sidebar-accordion-section">
-                <button 
-                  className="sidebar-accordion-header"
-                  onClick={() => setCollectionsExpanded(!collectionsExpanded)}
-                >
-                  <span className="sidebar-accordion-title">
-                    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: collectionsExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.1s' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
-                    Collections
-                  </span>
-                </button>
-                {collectionsExpanded && (
-                  <div className="sidebar-accordion-content">
-                    {filteredCollections.length === 0 ? (
-                      <div style={{ color: "var(--text-muted)", fontSize: "11px", padding: "8px 0" }}>
-                        No collections found
+              <div className="sidebar-collections-list">
+                {filteredCollections.length === 0 ? (
+                  <div style={{ color: "var(--text-muted)", fontSize: "11px", padding: "8px 4px" }}>
+                    No collections found
+                  </div>
+                ) : (
+                  filteredCollections.map((coll) => (
+                    <div key={coll.id} style={{ marginBottom: "4px" }}>
+                      <div className="list-item-btn">
+                        <span className="list-item-title" style={{ width: "100%", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontSize: "12px", opacity: 0.8 }}>📁</span>
+                          {editingCollectionId === coll.id ? (
+                            <input
+                              type="text"
+                              className="inline-rename-input"
+                              value={renameInputVal}
+                              onChange={(e) => setRenameInputVal(e.target.value)}
+                              onBlur={() => handleRenameCollection(coll.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRenameCollection(coll.id);
+                                if (e.key === "Escape") setEditingCollectionId(null);
+                              }}
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <span 
+                              style={{ width: "100%", fontWeight: 500 }}
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCollectionId(coll.id);
+                                setRenameInputVal(coll.name);
+                              }}
+                            >
+                              {coll.name}
+                            </span>
+                          )}
+                        </span>
+                        
+                        {editingCollectionId !== coll.id && (
+                          <div className="list-item-actions">
+                            <button
+                              className="action-btn-icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCollectionId(coll.id);
+                                setRenameInputVal(coll.name);
+                              }}
+                              title="Rename"
+                            >
+                              Rename
+                            </button>
+                            <button
+                              className="action-btn-icon"
+                              onClick={(e) => handleDeleteCollection(coll.id, e)}
+                              title="Delete"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      filteredCollections.map((coll) => (
-                        <div key={coll.id} style={{ marginBottom: "4px" }}>
-                          <div className="list-item-btn">
-                            <span className="list-item-title" style={{ width: "100%" }}>
-                              {editingCollectionId === coll.id ? (
+
+                      <div className="nested-list">
+                        {coll.requests.map((req) => (
+                          <div
+                            key={req.id}
+                            className="list-item-btn"
+                            style={{ padding: "4px 8px" }}
+                            onClick={() => loadSavedRequest(req)}
+                          >
+                            <span style={{ display: "flex", gap: "6px", alignItems: "center", width: "100%" }}>
+                              <span
+                                style={{
+                                  fontSize: "9px",
+                                  fontWeight: "bold",
+                                  color: `var(--method-${req.method.toLowerCase()}, var(--method-other))`,
+                                  minWidth: "28px"
+                                }}
+                              >
+                                {req.method}
+                              </span>
+                              
+                              {editingRequestId === req.id ? (
                                 <input
                                   type="text"
                                   className="inline-rename-input"
                                   value={renameInputVal}
                                   onChange={(e) => setRenameInputVal(e.target.value)}
-                                  onBlur={() => handleRenameCollection(coll.id)}
+                                  onBlur={() => handleRenameRequest(req)}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleRenameCollection(coll.id);
-                                    if (e.key === "Escape") setEditingCollectionId(null);
+                                    if (e.key === "Enter") handleRenameRequest(req);
+                                    if (e.key === "Escape") setEditingRequestId(null);
                                   }}
                                   autoFocus
                                   onClick={(e) => e.stopPropagation()}
                                 />
                               ) : (
-                                <span 
-                                  style={{ width: "100%" }}
+                                <span
+                                  style={{ width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                                   onDoubleClick={(e) => {
                                     e.stopPropagation();
-                                    setEditingCollectionId(coll.id);
-                                    setRenameInputVal(coll.name);
+                                    setEditingRequestId(req.id);
+                                    setRenameInputVal(req.name);
                                   }}
                                 >
-                                  Folder {coll.name}
+                                  {req.name}
                                 </span>
                               )}
                             </span>
                             
-                            {editingCollectionId !== coll.id && (
+                            {editingRequestId !== req.id && (
                               <div className="list-item-actions">
                                 <button
                                   className="action-btn-icon"
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
-                                    setEditingCollectionId(coll.id);
-                                    setRenameInputVal(coll.name);
+                                    if (confirm("Delete request?")) {
+                                      await deleteSavedRequest(req.id);
+                                      addToast("Request deleted", "success");
+                                      loadAllData();
+                                    }
                                   }}
-                                  title="Rename"
-                                >
-                                  Rename
-                                </button>
-                                <button
-                                  className="action-btn-icon"
-                                  onClick={(e) => handleDeleteCollection(coll.id, e)}
-                                  title="Delete"
                                 >
                                   Delete
                                 </button>
                               </div>
                             )}
                           </div>
-
-                          <div className="nested-list">
-                            {coll.requests.map((req) => (
-                              <div
-                                key={req.id}
-                                className="list-item-btn"
-                                style={{ padding: "4px 8px" }}
-                                onClick={() => loadSavedRequest(req)}
-                              >
-                                <span style={{ display: "flex", gap: "6px", alignItems: "center", width: "100%" }}>
-                                  <span
-                                    style={{
-                                      fontSize: "9px",
-                                      fontWeight: "bold",
-                                      color: `var(--method-${req.method.toLowerCase()}, var(--method-other))`,
-                                    }}
-                                  >
-                                    {req.method}
-                                  </span>
-                                  
-                                  {editingRequestId === req.id ? (
-                                    <input
-                                      type="text"
-                                      className="inline-rename-input"
-                                      value={renameInputVal}
-                                      onChange={(e) => setRenameInputVal(e.target.value)}
-                                      onBlur={() => handleRenameRequest(req)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") handleRenameRequest(req);
-                                        if (e.key === "Escape") setEditingRequestId(null);
-                                      }}
-                                      autoFocus
-                                      onClick={(e) => e.stopPropagation()}
-                                    />
-                                  ) : (
-                                    <span
-                                      style={{ width: "100%" }}
-                                      onDoubleClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingRequestId(req.id);
-                                        setRenameInputVal(req.name);
-                                      }}
-                                    >
-                                      {req.name}
-                                    </span>
-                                  )}
-                                </span>
-                                
-                                {editingRequestId !== req.id && (
-                                  <div className="list-item-actions">
-                                    <button
-                                      className="action-btn-icon"
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (confirm("Delete request?")) {
-                                          await deleteSavedRequest(req.id);
-                                          addToast("Request deleted", "success");
-                                          loadAllData();
-                                        }
-                                      }}
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Accordion: Environments */}
-              <div className="sidebar-accordion-section">
-                <button 
-                  className="sidebar-accordion-header"
-                  onClick={() => setEnvironmentsExpanded(!environmentsExpanded)}
-                >
-                  <span className="sidebar-accordion-title">
-                    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: environmentsExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.1s' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
-                    Environments
-                  </span>
-                </button>
-                {environmentsExpanded && (
-                  <div className="sidebar-accordion-content">
-                    {filteredEnvironments.length === 0 ? (
-                      <div className="sidebar-empty-panel">
-                        <span className="sidebar-empty-text">No items in this panel</span>
-                        <button className="sidebar-create-btn" onClick={() => handleOpenEditEnv(null)}>+ Create</button>
+                        ))}
                       </div>
-                    ) : (
-                      filteredEnvironments.map((env) => (
-                        <div
-                          key={env.id}
-                          className="list-item-btn"
-                          style={{ padding: "6px 8px" }}
-                          onClick={() => handleOpenEditEnv(env)}
-                        >
-                          <span className="list-item-title">Env {env.name}</span>
-                          <div className="list-item-actions">
-                            <button
-                              className="action-btn-icon"
-                              onClick={(e) => handleDeleteEnvironment(env.id, e)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Accordion: Specs */}
-              <div className="sidebar-accordion-section">
-                <button 
-                  className="sidebar-accordion-header"
-                  onClick={() => setSpecsExpanded(!specsExpanded)}
-                >
-                  <span className="sidebar-accordion-title">
-                    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: specsExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.1s' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
-                    Specs
-                  </span>
-                </button>
-                {specsExpanded && (
-                  <div className="sidebar-accordion-content">
-                    <div className="sidebar-empty-panel">
-                      <span className="sidebar-empty-text">No items in this panel</span>
-                      <button className="sidebar-create-btn" onClick={() => addToast("Specs creation is a placeholder", "info")}>+ Create</button>
                     </div>
-                  </div>
+                  ))
                 )}
               </div>
-
-              {/* Accordion: Flows */}
-              <div className="sidebar-accordion-section">
-                <button 
-                  className="sidebar-accordion-header"
-                  onClick={() => setFlowsExpanded(!flowsExpanded)}
-                >
-                  <span className="sidebar-accordion-title">
-                    <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: flowsExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.1s' }}><polyline points="9 18 15 12 9 6"></polyline></svg>
-                    Flows
-                  </span>
-                </button>
-                {flowsExpanded && (
-                  <div className="sidebar-accordion-content">
-                    <div className="sidebar-empty-panel">
-                      <span className="sidebar-empty-text">No items in this panel</span>
-                      <button className="sidebar-create-btn" onClick={() => addToast("Flows creation is a placeholder", "info")}>+ Create</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
             </div>
           )}
 
@@ -642,15 +703,20 @@ export const WorkspaceBuilderView: React.FC<WorkspaceBuilderViewProps> = ({
               className={`request-tab ${t.id === activeTabId ? "active" : ""}`}
               onClick={() => setActiveTabId(t.id)}
             >
-              <span
-                style={{
-                  fontSize: "9px",
-                  fontWeight: "bold",
-                  color: `var(--method-${t.method.toLowerCase()}, var(--method-other))`,
-                }}
-              >
-                {t.method}
-              </span>
+              {t.tabType === "collection" ? (
+                <span style={{ fontSize: "11px", marginRight: "6px" }}>📁</span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: "9px",
+                    fontWeight: "bold",
+                    color: `var(--method-${t.method.toLowerCase()}, var(--method-other))`,
+                    marginRight: "4px"
+                  }}
+                >
+                  {t.method}
+                </span>
+              )}
               <span
                 style={{
                   overflow: "hidden",
@@ -765,46 +831,201 @@ export const WorkspaceBuilderView: React.FC<WorkspaceBuilderViewProps> = ({
         </div>
 
         {activeTab ? (
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-            
-            {/* Address bar */}
-            <div className="address-bar-container">
-              <select
-                className="method-select"
-                value={activeTab.method}
-                onChange={(e) => updateActiveTab({ method: e.target.value })}
-              >
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="DELETE">DELETE</option>
-                <option value="PATCH">PATCH</option>
-                <option value="HEAD">HEAD</option>
-                <option value="OPTIONS">OPTIONS</option>
-              </select>
+          activeTab.tabType === "collection" ? (
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden", backgroundColor: "var(--bg-primary)" }}>
+              {/* Collection title and metadata */}
+              <div style={{ padding: "24px 32px 12px 32px", borderBottom: "1px solid var(--border-color)" }}>
+                <h2 style={{ fontSize: "20px", fontWeight: "bold", color: "var(--text-primary)", marginBottom: "8px" }}>
+                  {activeTab.name}
+                </h2>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "11px", color: "var(--text-muted)" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    👤 You
+                  </span>
+                  <span>•</span>
+                  <span>0 requests</span>
+                  <span>•</span>
+                  <span>1 folders</span>
+                  <span>•</span>
+                  <span>01:17 PM, June 28, 2026</span>
+                </div>
 
-              <input
-                type="text"
-                placeholder="Enter URL or paste text"
-                className="url-input"
-                value={activeTab.url}
-                onChange={(e) => handleUrlChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSend();
-                }}
-              />
+                {/* Collection tabs: Overview, Authorization, Scripts, Variables, Runs */}
+                <div style={{ display: "flex", gap: "24px", marginTop: "20px", borderBottom: "1px solid var(--border-color)" }}>
+                  {["Overview", "Authorization", "Scripts", "Variables", "Runs"].map((subTab) => {
+                    const isActive = (activeTab.collectionTabActiveTab || "overview") === subTab.toLowerCase();
+                    return (
+                      <button
+                        key={subTab}
+                        onClick={() => updateActiveTab({ collectionTabActiveTab: subTab.toLowerCase() as any })}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          borderBottom: isActive ? "2px solid var(--accent-color)" : "2px solid transparent",
+                          color: isActive ? "var(--text-primary)" : "var(--text-muted)",
+                          padding: "8px 0",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          marginBottom: "-1px"
+                        }}
+                      >
+                        {subTab}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-              <button className="send-btn" onClick={handleSend} disabled={activeTab.loading}>
-                {activeTab.loading ? "Sending..." : "Send"}
-              </button>
+              {/* Sub-tab content */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px" }}>
+                {(activeTab.collectionTabActiveTab || "overview") === "overview" && (
+                  <div style={{ display: "flex", gap: "48px", maxWidth: "900px" }}>
+                    {/* Left panel: empty state */}
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <h3 style={{ fontSize: "14px", fontWeight: "bold", color: "var(--text-primary)" }}>Collection is empty</h3>
+                      <p style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.6" }}>
+                        Add a request or folder to structure your API workflow.
+                      </p>
+                      <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+                        <button 
+                          className="send-btn" 
+                          style={{ padding: "8px 16px", fontSize: "12px" }}
+                          onClick={() => {
+                            createNewTab({ 
+                              collectionId: activeTab.collectionId, 
+                              name: "Get data",
+                              method: "GET"
+                            });
+                          }}
+                        >
+                          Add request
+                        </button>
+                        <button 
+                          className="btn-secondary" 
+                          style={{ padding: "8px 16px", fontSize: "12px" }}
+                          onClick={() => addToast("Folder creation is a placeholder", "info")}
+                        >
+                          Add folder
+                        </button>
+                      </div>
+                    </div>
 
-              <button
-                className="btn-secondary"
-                onClick={handleSaveClick}
-              >
-                {activeTab.savedId ? "Save" : "Save As"}
-              </button>
+                    {/* Right panel: Description */}
+                    <div style={{ width: "320px", display: "flex", flexDirection: "column", gap: "16px", borderLeft: "1px solid var(--border-color)", paddingLeft: "32px" }}>
+                      <p style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: "1.6", margin: 0 }}>
+                        Help people understand your collection by adding a description. <span style={{ color: "var(--accent-color)", cursor: "pointer" }}>Write with AI</span>
+                      </p>
+                      <a href="#" style={{ fontSize: "12px", color: "var(--accent-color)", textDecoration: "none" }}>
+                        View complete documentation
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {(activeTab.collectionTabActiveTab || "overview") === "runs" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                    {/* segmented tab inside runs: Functional, Scheduled, Performance */}
+                    <div style={{ display: "flex", gap: "2px", backgroundColor: "var(--bg-tertiary)", padding: "2px", borderRadius: "6px", width: "fit-content" }}>
+                      {["Functional", "Scheduled", "Performance"].map((tab) => (
+                        <div 
+                          key={tab} 
+                          className="recents-segmented-tab active" 
+                          style={{ 
+                            fontSize: "11px", 
+                            padding: "4px 12px", 
+                            borderRadius: "4px",
+                            backgroundColor: tab === "Functional" ? "var(--bg-secondary)" : "transparent",
+                            color: tab === "Functional" ? "var(--text-primary)" : "var(--text-muted)"
+                          }}
+                        >
+                          {tab}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                      Runs triggered for this collection via Collection Runner and Postman CLI.
+                    </div>
+
+                    {/* Table headers */}
+                    <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border-color)", paddingBottom: "8px", fontSize: "11px", color: "var(--text-muted)", fontWeight: "bold" }}>
+                      <span style={{ flex: 2 }}>Last 100 runs</span>
+                      <span style={{ flex: 1 }}>Run by</span>
+                      <span style={{ flex: 1 }}>Run status</span>
+                      <span style={{ flex: 1 }}>Source</span>
+                    </div>
+
+                    {/* Empty run state */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 0", gap: "16px" }}>
+                      <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                        Your collection has not been run yet
+                      </span>
+                      <button 
+                        className="upgrade-btn-orange" 
+                        style={{ backgroundColor: "#ff6c37", color: "#fff", border: "none", padding: "8px 20px", borderRadius: "4px", fontSize: "12px", fontWeight: "bold", cursor: "pointer" }}
+                        onClick={() => addToast("Starting collection runner...", "info")}
+                      >
+                        Run Collection
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {["authorization", "scripts", "variables"].includes(activeTab.collectionTabActiveTab || "") && (
+                  <div style={{ color: "var(--text-muted)", fontSize: "12px" }}>
+                    Configure {activeTab.collectionTabActiveTab} for the collection here. (Placeholder view)
+                  </div>
+                )}
+              </div>
             </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+              
+              {/* Address bar */}
+              <div className="address-bar-container">
+                <div className="url-bar-wrapper">
+                  <select
+                    className="method-select"
+                    value={activeTab.method}
+                    onChange={(e) => updateActiveTab({ method: e.target.value })}
+                    style={{
+                      color: `var(--method-${activeTab.method.toLowerCase()}, var(--text-primary))`
+                    }}
+                  >
+                    <option value="GET" style={{ color: "var(--method-get)" }}>GET</option>
+                    <option value="POST" style={{ color: "var(--method-post)" }}>POST</option>
+                    <option value="PUT" style={{ color: "var(--method-put)" }}>PUT</option>
+                    <option value="DELETE" style={{ color: "var(--method-delete)" }}>DELETE</option>
+                    <option value="PATCH" style={{ color: "var(--method-patch)" }}>PATCH</option>
+                    <option value="HEAD" style={{ color: "var(--text-primary)" }}>HEAD</option>
+                    <option value="OPTIONS" style={{ color: "var(--text-primary)" }}>OPTIONS</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Enter URL or paste text"
+                    className="url-input"
+                    value={activeTab.url}
+                    onChange={(e) => handleUrlChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSend();
+                    }}
+                  />
+                </div>
+
+                <button className="send-btn" onClick={handleSend} disabled={activeTab.loading}>
+                  {activeTab.loading ? "Sending..." : "Send"}
+                </button>
+
+                <button
+                  className="btn-secondary"
+                  onClick={handleSaveClick}
+                  style={{ height: "32px", padding: "0 14px", display: "flex", alignItems: "center" }}
+                >
+                  {activeTab.savedId ? "Save" : "Save As"}
+                </button>
+              </div>
 
             {/* Request Builder Sub-Tabs */}
             <div className="builder-tabs">
@@ -1268,9 +1489,9 @@ export const WorkspaceBuilderView: React.FC<WorkspaceBuilderViewProps> = ({
                 )}
               </div>
             </div>
-
           </div>
-        ) : (
+        )
+      ) : (
           /* Watermark Empty State View matching Screenshot 4 */
           <div className="workspace-empty-view">
             <div className="watermark-circle">

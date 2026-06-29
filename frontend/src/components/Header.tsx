@@ -7,8 +7,8 @@ interface HeaderProps {
   homeSidebarTab: string;
   setHomeSidebarTab: (t: any) => void;
   workspaces: WorkspaceItem[];
-  activeWorkspace: string;
-  handleSelectWorkspace: (wName: string) => void;
+  activeWorkspace: WorkspaceItem | null;
+  handleSelectWorkspace: (wId: number) => void;
   showHomeDropdown: boolean;
   setShowHomeDropdown: (b: boolean) => void;
   showWorkspaceDropdown: boolean;
@@ -55,10 +55,23 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="top-nav">
       <div className="top-nav-left">
-        {/* Home Icon button matching Screenshot 1 */}
+        {/* Brand Logo */}
+        <div 
+          style={{ display: "flex", alignItems: "center", marginRight: "4px", cursor: "pointer" }} 
+          title="Postman Clone"
+          onClick={() => { setCurrentView("home"); setHomeSidebarTab("home"); }}
+        >
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="6" fill="#FF6C37"/>
+            <path d="M16 6C13.5 10.5 10.5 15.5 10.5 19C10.5 22 13 24.5 16 24.5C19 24.5 21.5 22 21.5 19C21.5 15.5 18.5 10.5 16 6Z" fill="white"/>
+            <circle cx="16" cy="16" r="2.5" fill="#FF6C37"/>
+          </svg>
+        </div>
+
+        {/* Home button with dropdown */}
         <div style={{ position: "relative" }}>
           <button 
-            className="nav-home-icon-btn" 
+            className={`workspace-dropdown-btn ${currentView === "home" ? "active" : ""}`}
             onClick={(e) => {
               e.stopPropagation();
               setShowHomeDropdown(!showHomeDropdown);
@@ -66,13 +79,9 @@ export const Header: React.FC<HeaderProps> = ({
               setShowProfileDropdown(false);
               setShowSearchDropdown(false);
             }}
-            title="Home Menu"
-            style={{ display: "flex", alignItems: "center", gap: "2px" }}
+            style={{ display: "flex", alignItems: "center", gap: "4px" }}
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
-            </svg>
+            <span>Home</span>
             <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
 
@@ -85,7 +94,8 @@ export const Header: React.FC<HeaderProps> = ({
                 width: "240px", 
                 maxHeight: "360px", 
                 overflowY: "auto",
-                padding: "6px 0"
+                padding: "6px 0",
+                zIndex: 1100
               }} 
               onClick={(e) => e.stopPropagation()}
             >
@@ -162,16 +172,17 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Workspaces dropdown */}
         <div style={{ position: "relative" }}>
           <button 
-            className="workspace-dropdown-btn"
+            className={`workspace-dropdown-btn ${currentView === "workspace" || currentView === "workspaces" ? "active" : ""}`}
             onClick={(e) => {
               e.stopPropagation();
               setShowWorkspaceDropdown(!showWorkspaceDropdown);
+              setShowHomeDropdown(false);
               setShowProfileDropdown(false);
               setShowSearchDropdown(false);
             }}
           >
-            Workspaces
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <span>Workspaces</span>
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
 
           {showWorkspaceDropdown && (
@@ -181,8 +192,8 @@ export const Header: React.FC<HeaderProps> = ({
                 <div 
                   key={idx} 
                   className="profile-dropdown-item"
-                  onClick={() => handleSelectWorkspace(w.name)}
-                  style={{ fontWeight: activeWorkspace === w.name ? 600 : 400 }}
+                  onClick={() => handleSelectWorkspace(w.id)}
+                  style={{ fontWeight: activeWorkspace?.id === w.id ? 600 : 400 }}
                 >
                   <span>{w.name} ({w.type})</span>
                 </div>
@@ -201,6 +212,23 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
+
+        {/* API Network & Explore buttons matching Postman */}
+        <button 
+          className="workspace-dropdown-btn" 
+          style={{ opacity: 0.8, fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}
+          onClick={() => alert("API Network is a placeholder")}
+        >
+          <span>API Network</span>
+          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <button 
+          className="workspace-dropdown-btn" 
+          style={{ opacity: 0.8, fontSize: "12px" }}
+          onClick={() => alert("Explore is a placeholder")}
+        >
+          <span>Explore</span>
+        </button>
       </div>
 
       {/* Global Search Bar with overlay dropdown */}
@@ -277,10 +305,16 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="search-overlay-content">
                 <div className="search-recent-viewed">
                   <div style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "8px" }}>Recently Viewed</div>
-                  <div className="search-opt-row" onClick={() => handleSelectWorkspace("Ayush Kumar Rai's Workspace")}>
+                  <div className="search-opt-row" onClick={() => {
+                    const ws = workspaces.find(w => w.name === "Ayush Kumar Rai's Workspace");
+                    if (ws) handleSelectWorkspace(ws.id);
+                  }}>
                     <span>Workspace: Ayush Kumar Rai's Workspace (Internal)</span>
                   </div>
-                  <div className="search-opt-row" onClick={() => handleSelectWorkspace("AYUSH")}>
+                  <div className="search-opt-row" onClick={() => {
+                    const ws = workspaces.find(w => w.name === "AYUSH");
+                    if (ws) handleSelectWorkspace(ws.id);
+                  }}>
                     <span>Workspace: AYUSH (Public)</span>
                   </div>
                   <div className="search-opt-row" onClick={() => { setCurrentView("workspace"); setSidebarTab("collections"); }}>

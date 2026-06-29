@@ -92,9 +92,11 @@ export default function PostmanClone() {
             setShowWorkspaceFilterDropdown={state.setShowWorkspaceFilterDropdown}
             workspaceFilters={state.workspaceFilters}
             setWorkspaceFilters={state.setWorkspaceFilters}
-            selectedWorkspaceNames={state.selectedWorkspaceNames}
-            setSelectedWorkspaceNames={state.setSelectedWorkspaceNames}
+            selectedWorkspaceIds={state.selectedWorkspaceIds}
+            setSelectedWorkspaceIds={state.setSelectedWorkspaceIds}
             handleSelectWorkspace={handlers.handleSelectWorkspace}
+            handleDeleteWorkspaces={handlers.handleDeleteWorkspaces}
+            handleCreateWorkspace={handlers.handleCreateWorkspace}
             handleHomeChatSubmit={handlers.handleHomeChatSubmit}
             homeChatbarInput={state.homeChatbarInput}
             setHomeChatbarInput={state.setHomeChatbarInput}
@@ -122,10 +124,7 @@ export default function PostmanClone() {
             handleRenameCollection={handlers.handleRenameCollection}
             handleDeleteCollection={handlers.handleDeleteCollection}
             filteredHistory={handlers.filteredHistory}
-            clearHistory={async () => {
-              const { clearHistory: clearHistoryAPI } = await import("../utils/requests");
-              await clearHistoryAPI();
-            }}
+            clearHistory={handlers.handleClearHistory}
             loadAllData={handlers.loadAllData}
             loadHistoryItem={handlers.loadHistoryItem}
             loadSavedRequest={handlers.loadSavedRequest}
@@ -152,7 +151,8 @@ export default function PostmanClone() {
             setActiveTabId={state.setActiveTabId}
             createNewTab={handlers.createNewTab}
             closeTab={handlers.closeTab}
-            activeWorkspace={state.activeWorkspace}
+            activeWorkspace={state.activeWorkspace?.name || ""}
+            activeWorkspaceId={state.activeWorkspace?.id || 1}
             selectedEnvId={state.selectedEnvId}
             setSelectedEnvId={state.setSelectedEnvId}
             environments={state.environments}

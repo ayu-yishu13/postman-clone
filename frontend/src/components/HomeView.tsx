@@ -22,9 +22,11 @@ interface HomeViewProps {
     type: { internal: boolean; public: boolean; partner: boolean };
     access: { inviteOnly: boolean; team: boolean; partnerOnly: boolean; internet: boolean };
   }>>;
-  selectedWorkspaceNames: string[];
-  setSelectedWorkspaceNames: (names: string[]) => void;
-  handleSelectWorkspace: (wName: string) => void;
+  selectedWorkspaceIds: number[];
+  setSelectedWorkspaceIds: (ids: number[]) => void;
+  handleSelectWorkspace: (wId: number) => void;
+  handleDeleteWorkspaces?: (ids: number[]) => void;
+  handleCreateWorkspace?: () => void;
   handleHomeChatSubmit: (e?: React.FormEvent) => void;
   homeChatbarInput: string;
   setHomeChatbarInput: (val: string) => void;
@@ -47,9 +49,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
   setShowWorkspaceFilterDropdown,
   workspaceFilters,
   setWorkspaceFilters,
-  selectedWorkspaceNames,
-  setSelectedWorkspaceNames,
+  selectedWorkspaceIds,
+  setSelectedWorkspaceIds,
   handleSelectWorkspace,
+  handleDeleteWorkspaces,
+  handleCreateWorkspace,
   handleHomeChatSubmit,
   homeChatbarInput,
   setHomeChatbarInput,
@@ -203,7 +207,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 <div className="recents-list-container">
                   {/* Row 1: Workspace */}
-                  <div className="recent-row" onClick={() => handleSelectWorkspace("Ayush Kumar Rai's Workspace")}>
+                  <div className="recent-row" onClick={() => {
+                    const ws = workspaces.find(w => w.name === "Ayush Kumar Rai's Workspace");
+                    if (ws) handleSelectWorkspace(ws.id);
+                  }}>
                     <span className="recent-icon-wrapper">
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                     </span>
@@ -265,7 +272,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {/* workspaces list view */}
             <div className="workspaces-header">
               <h2 className="workspaces-title" style={{ fontSize: "22px", fontWeight: "bold", margin: 0 }}>Workspaces</h2>
-              <button className="upgrade-btn-orange" style={{ padding: "8px 16px", borderRadius: "4px", fontSize: "12px", height: "auto" }} onClick={() => addToast("Workspace creation is a placeholder", "info")}>
+              <button className="upgrade-btn-orange" style={{ padding: "8px 16px", borderRadius: "4px", fontSize: "12px", height: "auto" }} onClick={handleCreateWorkspace}>
                 Create workspace
               </button>
             </div>
@@ -278,7 +285,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   style={{ cursor: "pointer" }}
                   onClick={() => {
                     setWorkspacesSubTab("all");
-                    setSelectedWorkspaceNames([]);
+                    setSelectedWorkspaceIds([]);
                   }}
                 >
                   All
@@ -288,7 +295,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   style={{ cursor: "pointer" }}
                   onClick={() => {
                     setWorkspacesSubTab("project");
-                    setSelectedWorkspaceNames([]);
+                    setSelectedWorkspaceIds([]);
                   }}
                 >
                   Project Workspaces
@@ -298,7 +305,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   style={{ cursor: "pointer" }}
                   onClick={() => {
                     setWorkspacesSubTab("external");
-                    setSelectedWorkspaceNames([]);
+                    setSelectedWorkspaceIds([]);
                   }}
                 >
                   External
@@ -517,12 +524,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 return true;
               });
 
-              const allSelected = filteredWorkspaces.length > 0 && filteredWorkspaces.every(w => selectedWorkspaceNames.includes(w.name));
+              const allSelected = filteredWorkspaces.length > 0 && filteredWorkspaces.every(w => selectedWorkspaceIds.includes(w.id));
 
               return (
                 <>
                   {/* Selected banner matching Screenshot 1 */}
-                  {selectedWorkspaceNames.length > 0 && (
+                  {selectedWorkspaceIds.length > 0 && (
                     <div style={{ 
                       display: "flex", 
                       alignItems: "center", 
@@ -537,13 +544,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         <input 
                           type="checkbox" 
                           checked={true} 
-                          onChange={() => setSelectedWorkspaceNames([])} 
+                          onChange={() => setSelectedWorkspaceIds([])} 
                         />
                         <span style={{ fontSize: "12px", fontWeight: 600, color: "#90caf9" }}>
-                          {selectedWorkspaceNames.length} workspace{selectedWorkspaceNames.length > 1 ? "s" : ""} selected
+                          {selectedWorkspaceIds.length} workspace{selectedWorkspaceIds.length > 1 ? "s" : ""} selected
                         </span>
                         <span 
-                          onClick={() => setSelectedWorkspaceNames([])} 
+                          onClick={() => setSelectedWorkspaceIds([])} 
                           style={{ fontSize: "12px", color: "#42a5f5", cursor: "pointer", marginLeft: "8px", textDecoration: "underline" }}
                         >
                           Clear selection
@@ -553,7 +560,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         <button 
                           className="sidebar-create-btn" 
                           style={{ padding: "4px 12px", fontSize: "11px", borderColor: "rgba(255,255,255,0.15)" }}
-                          onClick={() => addToast(`Archived ${selectedWorkspaceNames.length} workspace(s)`, "success")}
+                          onClick={() => addToast(`Archived ${selectedWorkspaceIds.length} workspace(s)`, "success")}
                         >
                           Archive
                         </button>
@@ -561,9 +568,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                           className="sidebar-create-btn" 
                           style={{ padding: "4px 12px", fontSize: "11px", backgroundColor: "#d32f2f", borderColor: "#d32f2f", color: "white" }}
                           onClick={() => {
-                            setWorkspaces(workspaces.filter(w => !selectedWorkspaceNames.includes(w.name)));
-                            addToast(`Deleted ${selectedWorkspaceNames.length} workspace(s)`, "success");
-                            setSelectedWorkspaceNames([]);
+                            if (handleDeleteWorkspaces) {
+                              handleDeleteWorkspaces(selectedWorkspaceIds);
+                              setSelectedWorkspaceIds([]);
+                            }
                           }}
                         >
                           Delete
@@ -582,9 +590,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                             checked={allSelected} 
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedWorkspaceNames(filteredWorkspaces.map(w => w.name));
+                                setSelectedWorkspaceIds(filteredWorkspaces.map(w => w.id));
                               } else {
-                                setSelectedWorkspaceNames([]);
+                                setSelectedWorkspaceIds([]);
                               }
                             }} 
                           />
@@ -616,12 +624,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         }
 
                         const visibilityLabel = w.access === "Anyone on the internet" ? "Public" : "Internal";
-                        const rowSelected = selectedWorkspaceNames.includes(w.name);
+                        const rowSelected = selectedWorkspaceIds.includes(w.id);
 
                         return (
                           <tr 
                             key={idx} 
-                            onClick={() => handleSelectWorkspace(w.name)}
+                            onClick={() => handleSelectWorkspace(w.id)}
                             style={{ backgroundColor: rowSelected ? "rgba(24, 36, 60, 0.2)" : "transparent" }}
                           >
                             <td>
@@ -631,9 +639,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                                 onChange={(e) => {
                                   e.stopPropagation();
                                   if (rowSelected) {
-                                    setSelectedWorkspaceNames(selectedWorkspaceNames.filter(name => name !== w.name));
+                                    setSelectedWorkspaceIds(selectedWorkspaceIds.filter(id => id !== w.id));
                                   } else {
-                                    setSelectedWorkspaceNames([...selectedWorkspaceNames, w.name]);
+                                    setSelectedWorkspaceIds([...selectedWorkspaceIds, w.id]);
                                   }
                                 }}
                                 onClick={(e) => e.stopPropagation()} 
@@ -672,7 +680,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                               </div>
                             </td>
                             <td style={{ fontSize: "12px" }}>{w.contributors}</td>
-                            <td style={{ fontSize: "12px" }}>{w.lastActivity}</td>
+                            <td style={{ fontSize: "12px" }}>{w.last_activity}</td>
                             <td style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{w.access}</td>
                             <td style={{ fontSize: "12px" }}>{w.role}</td>
                             <td>

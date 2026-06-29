@@ -2,6 +2,26 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
+# --- Workspace Schemas ---
+class WorkspaceBase(BaseModel):
+    name: str
+    type: Optional[str] = "Internal"
+    creator: Optional[str] = "You"
+    contributors: Optional[int] = 1
+    last_activity: Optional[str] = "Just now"
+    access: Optional[str] = "Everyone in your team"
+    role: Optional[str] = "Admin"
+
+class WorkspaceCreate(WorkspaceBase):
+    pass
+
+class WorkspaceResponse(WorkspaceBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 # --- EnvVariable Schemas ---
 class EnvVariableBase(BaseModel):
     key: str
@@ -22,10 +42,12 @@ class EnvironmentBase(BaseModel):
     name: str
 
 class EnvironmentCreate(EnvironmentBase):
+    workspace_id: int
     variables: List[EnvVariableCreate] = []
 
 class EnvironmentResponse(EnvironmentBase):
     id: int
+    workspace_id: int
     created_at: datetime
     variables: List[EnvVariableResponse] = []
 
@@ -59,10 +81,11 @@ class CollectionBase(BaseModel):
     name: str
 
 class CollectionCreate(CollectionBase):
-    pass
+    workspace_id: int
 
 class CollectionResponse(CollectionBase):
     id: int
+    workspace_id: int
     created_at: datetime
     requests: List[SavedRequestResponse] = []
 
@@ -80,6 +103,7 @@ class HistoryItemBase(BaseModel):
     auth_config: Optional[str] = None
 
 class HistoryItemCreate(HistoryItemBase):
+    workspace_id: int
     status_code: Optional[int] = None
     response_time_ms: Optional[int] = None
     response_size_bytes: Optional[int] = None
@@ -87,6 +111,7 @@ class HistoryItemCreate(HistoryItemBase):
 
 class HistoryItemResponse(HistoryItemBase):
     id: int
+    workspace_id: int
     sent_at: datetime
     status_code: Optional[int] = None
     response_time_ms: Optional[int] = None
@@ -98,6 +123,7 @@ class HistoryItemResponse(HistoryItemBase):
 
 # --- Proxy request / response ---
 class ProxyRequest(BaseModel):
+    workspace_id: int
     method: str
     url: str
     headers: Optional[List[Dict[str, Any]]] = None  # key-value array from client table
